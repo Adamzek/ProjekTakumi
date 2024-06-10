@@ -1,0 +1,2 @@
+# ProjekTakumi
+ OOPLastMinit
