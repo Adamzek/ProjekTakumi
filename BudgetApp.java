@@ -1,4 +1,3 @@
-
 package oop_project;
 
 import javafx.application.Application;
@@ -17,38 +16,20 @@ public class BudgetApp extends Application {
         launch(args);
     }
 
-    private TableView<Income> incomeTable;
-    private TableView<Expense> expensesTable;
-    private ObservableList<Income> incomeData;
-    private ObservableList<Expense> expenseData;
+    private TableView<FinancialEntry> incomeTable;
+    private TableView<FinancialEntry> expensesTable;
+    private ObservableList<FinancialEntry> incomeData;
+    private ObservableList<FinancialEntry> expenseData;
+
+    private Label totalIncomeLabel;
+    private Label totalExpensesLabel;
 
     @Override
     public void start(Stage primaryStage) {
         primaryStage.setTitle("Budget Overview");
 
-        incomeData = FXCollections.observableArrayList(
-            new Income("Contribution from parents", "$500"),
-            new Income("Scholarships", "$400"),
-            new Income("Income from part-time job", "$800"),
-            new Income("Financial aid/student loans", "$800"),
-            new Income("Other income", "$100")
-        );
-
-        expenseData = FXCollections.observableArrayList(
-            new Expense("Rent/dorm room", "$750"),
-            new Expense("Tuition & fees", "$800"),
-            new Expense("Meal plan", "$375"),
-            new Expense("Groceries", "$100"),
-            new Expense("Dining out", "$100"),
-            new Expense("Entertainment/drinks", "$100"),
-            new Expense("Savings", "$75"),
-            new Expense("Travel/transportation", "$75"),
-            new Expense("Shopping/clothes", "$50"),
-            new Expense("Miscellaneous", "$50"),
-            new Expense("Utilities", "$50"),
-            new Expense("Phone bill", "$50"),
-            new Expense("Subscriptions", "$25")
-        );
+        incomeData = FXCollections.observableArrayList();
+        expenseData = FXCollections.observableArrayList();
 
         GridPane grid = new GridPane();
         grid.setHgap(10);
@@ -60,11 +41,17 @@ public class BudgetApp extends Application {
         grid.add(incomeLabel, 0, 0);
         grid.add(incomeTable, 0, 1);
 
+        totalIncomeLabel = new Label("Total Income: $0");
+        grid.add(totalIncomeLabel, 0, 2);
+
         // Expenses Section
         Label expensesLabel = new Label("Expenses");
         expensesTable = createExpensesTable();
-        grid.add(expensesLabel, 0, 2);
-        grid.add(expensesTable, 0, 3);
+        grid.add(expensesLabel, 0, 3);
+        grid.add(expensesTable, 0, 4);
+
+        totalExpensesLabel = new Label("Total Expenses: $0");
+        grid.add(totalExpensesLabel, 0, 5);
 
         // Input Forms
         VBox inputForms = new VBox(20);
@@ -78,11 +65,11 @@ public class BudgetApp extends Application {
         primaryStage.show();
     }
 
-    private TableView<Income> createIncomeTable() {
-        TableView<Income> table = new TableView<>();
-        TableColumn<Income, String> sourceColumn = new TableColumn<>("Source");
+    private TableView<FinancialEntry> createIncomeTable() {
+        TableView<FinancialEntry> table = new TableView<>();
+        TableColumn<FinancialEntry, String> sourceColumn = new TableColumn<>("Source");
         sourceColumn.setCellValueFactory(new PropertyValueFactory<>("source"));
-        TableColumn<Income, String> amountColumn = new TableColumn<>("Monthly amount");
+        TableColumn<FinancialEntry, String> amountColumn = new TableColumn<>("Monthly amount");
         amountColumn.setCellValueFactory(new PropertyValueFactory<>("amount"));
         table.getColumns().add(sourceColumn);
         table.getColumns().add(amountColumn);
@@ -92,11 +79,11 @@ public class BudgetApp extends Application {
         return table;
     }
 
-    private TableView<Expense> createExpensesTable() {
-        TableView<Expense> table = new TableView<>();
-        TableColumn<Expense, String> expenseColumn = new TableColumn<>("Expense");
-        expenseColumn.setCellValueFactory(new PropertyValueFactory<>("expense"));
-        TableColumn<Expense, String> amountColumn = new TableColumn<>("Monthly amount");
+    private TableView<FinancialEntry> createExpensesTable() {
+        TableView<FinancialEntry> table = new TableView<>();
+        TableColumn<FinancialEntry, String> expenseColumn = new TableColumn<>("Expense");
+        expenseColumn.setCellValueFactory(new PropertyValueFactory<>("source"));
+        TableColumn<FinancialEntry, String> amountColumn = new TableColumn<>("Monthly amount");
         amountColumn.setCellValueFactory(new PropertyValueFactory<>("amount"));
         table.getColumns().add(expenseColumn);
         table.getColumns().add(amountColumn);
@@ -120,6 +107,7 @@ public class BudgetApp extends Application {
             String amount = amountField.getText();
             if (!source.isEmpty() && !amount.isEmpty()) {
                 incomeData.add(new Income(source, amount));
+                updateTotalIncome();
                 sourceField.clear();
                 amountField.clear();
             }
@@ -145,6 +133,7 @@ public class BudgetApp extends Application {
             String amount = amountField.getText();
             if (!expense.isEmpty() && !amount.isEmpty()) {
                 expenseData.add(new Expense(expense, amount));
+                updateTotalExpenses();
                 expenseField.clear();
                 amountField.clear();
             }
@@ -156,11 +145,25 @@ public class BudgetApp extends Application {
         return form;
     }
 
-    public static class Income {
+    private void updateTotalIncome() {
+        double total = incomeData.stream()
+            .mapToDouble(entry -> Double.parseDouble(entry.getAmount().replace("$", "")))
+            .sum();
+        totalIncomeLabel.setText(String.format("Total Income: $%.2f", total));
+    }
+
+    private void updateTotalExpenses() {
+        double total = expenseData.stream()
+            .mapToDouble(entry -> Double.parseDouble(entry.getAmount().replace("$", "")))
+            .sum();
+        totalExpensesLabel.setText(String.format("Total Expenses: $%.2f", total));
+    }
+
+    public abstract static class FinancialEntry {
         private String source;
         private String amount;
 
-        public Income(String source, String amount) {
+        public FinancialEntry(String source, String amount) {
             this.source = source;
             this.amount = amount;
         }
@@ -182,29 +185,15 @@ public class BudgetApp extends Application {
         }
     }
 
-    public static class Expense {
-        private String expense;
-        private String amount;
-
-        public Expense(String expense, String amount) {
-            this.expense = expense;
-            this.amount = amount;
+    public static class Income extends FinancialEntry {
+        public Income(String source, String amount) {
+            super(source, amount);
         }
+    }
 
-        public String getExpense() {
-            return expense;
-        }
-
-        public void setExpense(String expense) {
-            this.expense = expense;
-        }
-
-        public String getAmount() {
-            return amount;
-        }
-
-        public void setAmount(String amount) {
-            this.amount = amount;
+    public static class Expense extends FinancialEntry {
+        public Expense(String source, String amount) {
+            super(source, amount);
         }
     }
 }
